@@ -44,3 +44,16 @@ def redirect_to_long_url(code: str, db: Session = Depends(get_db)):
     db.commit()
 
     return RedirectResponse(url=record.long_url, status_code=status.HTTP_302_FOUND)
+
+@app.get("/stats/{code}", response_model=schemas.URLStats)
+def get_url_stats(code: str, db: Session = Depends(get_db)):
+    record = db.query(database.URLMap).filter_by(short_code=code).first()
+
+    if not record:
+        raise HTTPException(status_code=404, detail="No URL found for the code provided.")
+    
+    return schemas.URLStats(
+        redirects=record.access_count,
+        created_at=record.created_at,
+        last_accessed=record.last_accessed
+    )
