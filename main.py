@@ -1,17 +1,17 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+from datetime import datetime
 from . import database, schemas, config, helpers
 
-app = FastAPI(title="URL Shortner")
+app = FastAPI(title="URL Shortener")
 
 def get_db():
-    db = database.Session_local()
+    db = database.SessionLocal()
     try:
         yield db
     finally:
         db.close()
-    return
 
 
 @app.post("/shorten", status_code=status.HTTP_201_CREATED)
@@ -30,16 +30,16 @@ def shorten_url(payload: schemas.URLCreate, db: Session = Depends(get_db)):
 
 @app.get("/code")
 def redirect_to_long_url(code: str, db: Session = Depends(get_db)):
-    record = db.query(database.URLItem).filter_by(short_code=code).first()
+    record = db.query(database.URLMap).filter_by(short_code=code).first()
 
     if not record:
         raise HTTPException(status_code = 404, detail = "No URL found for the code provided.")
     
-    if record.expires_at and record.expires_at < record.created_at.utcnow():
+    if record.expires_at and record.expires_at < datetime.utcnow():
         raise HTTPException(status_code=410, detail = "Code has been expired")
     
     record.access_count += 1
-    record.last_accessed = record.created_at.utcnow()
+    record.last_accessed = datetime.utcnow()
 
     db.commit()
 
