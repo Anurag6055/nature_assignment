@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
-from . import database, schemas, config, helpers
+import database, schemas, config, helpers
 
 app = FastAPI(title="URL Shortener")
 
@@ -18,7 +18,7 @@ def get_db():
 def shorten_url(payload: schemas.URLCreate, db: Session = Depends(get_db)):
     url_item, error = helpers.create_short_url(
         db = db,
-        long_url = str(payload.url),
+        url = str(payload.url),
         alias = payload.custom_alias,
         expiry = payload.expires_in_seconds
     )
@@ -28,7 +28,7 @@ def shorten_url(payload: schemas.URLCreate, db: Session = Depends(get_db)):
     
     return {"Code": url_item.short_code}
 
-@app.get("/code")
+@app.get("/{code}")
 def redirect_to_long_url(code: str, db: Session = Depends(get_db)):
     record = db.query(database.URLMap).filter_by(short_code=code).first()
 
